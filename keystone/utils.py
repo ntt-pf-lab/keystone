@@ -101,6 +101,9 @@ def send_error(code, req, result):
         resp.content_type_params = {'charset': 'UTF-8'}
         resp.unicode_body = content.decode('UTF-8')
 
+    logging.debug("Error:Request=%s" % req)
+    logging.debug("Error:Response=%s" % resp)
+
     return resp
 
 
@@ -123,6 +126,9 @@ def send_result(code, req, result=None):
 
         resp.content_type_params = {'charset': 'UTF-8'}
         resp.unicode_body = content.decode('UTF-8')
+
+    logging.debug("Normal:Request=%s" % req)
+    logging.debug("Normal:Response=%s" % resp)
 
     return resp
 
