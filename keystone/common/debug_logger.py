@@ -42,6 +42,13 @@ class DebugLogger(wsgi.Middleware):
         self.application = application
         self.kwargs = kwargs
         self.LOG = logging.getLogger('keystone.common.debug_logger')
+        try:
+            self.max_response_len = int(kwargs.get('MAX_RESPONSE_LEN', -1))
+        except ValueError:
+            msg = _("Invalid value specified for MAX_RESPONSE_LEN '%s'" %
+                    kwargs.get('MAX_RESPONSE_LEN'))
+            self.LOG.error(msg)
+            raise RuntimeError(msg)
 
     @webob.dec.wsgify
     def __call__(self, req):
@@ -64,11 +71,9 @@ class DebugLogger(wsgi.Middleware):
 
         resp.set_cookie('request_id', request_id)
 
-        #maximum length of response value to log.
-        MAX_RESPONSE_LEN = int(self.kwargs.get('MAX_RESPONSE_LEN', -1))
         response_str = resp.body
-        if MAX_RESPONSE_LEN != -1:
-            response_str = response_str[0:MAX_RESPONSE_LEN]
+        if self.max_response_len != -1:
+            response_str = response_str[0:self.max_response_len]
 
         log_str = "REQUEST ID: %s TIME: %.3f %s RESPONSE STATUS: '%s' "\
                     "RESPONSE: '%s'" % \
