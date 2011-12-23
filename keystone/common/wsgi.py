@@ -107,7 +107,7 @@ class Server(object):
         # TODO(Ziad): figure out why root logger is not set to same level as
         # caller. Maybe something to do with paste?
         eventlet.wsgi.server(socket, application, custom_pool=self.pool,
-                             log=WritableLogger(logger, logging.root.level))
+                             log=WritableLogger(logger))
 
 
 class Middleware(object):

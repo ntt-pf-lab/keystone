@@ -58,6 +58,7 @@ class IdentityService(object):
 
         user = api.USER.get_by_name(auth_request.username)
         if not user:
+            LOG.warn(_("User %s not found") % auth_request.username)
             raise fault.UnauthorizedFault("Unauthorized")
 
         return self._authenticate(
@@ -123,9 +124,11 @@ class IdentityService(object):
                 raise fault.UnauthorizedFault("Unauthorized")
 
         if not duser.enabled:
+            LOG.warn(_("User %s is disabled") % str(user_id))
             raise fault.UserDisabledFault("Your account has been disabled")
 
         if not validate(duser):
+            LOG.warn(_("Username or password is incorrect"))
             raise fault.UnauthorizedFault("Unauthorized")
 
         # use user's default tenant_id if one is not specified
@@ -544,11 +547,14 @@ class IdentityService(object):
 
     def __validate_tenant(self, dtenant):
         if not dtenant:
-            raise fault.UnauthorizedFault("Tenant not found")
+            msg = _("Tenant not found")
+            LOG.warn(msg)
+            raise fault.UnauthorizedFault(msg)
 
         if not dtenant.enabled:
-            raise fault.TenantDisabledFault("Tenant %s has been disabled!"
-                % dtenant.id)
+            msg = "Tenant %s has been disabled!" % dtenant.id
+            LOG.warn(msg)
+            raise fault.TenantDisabledFault(msg)
 
         return dtenant
 
@@ -570,19 +576,26 @@ class IdentityService(object):
 
     def __validate_token(self, token_id, belongs_to=None):
         if not token_id:
-            raise fault.UnauthorizedFault("Missing token")
+            msg = _('Missing token')
+            LOG.warn(msg)
+            raise fault.UnauthorizedFault(msg)
 
         (token, user) = self.__get_dauth_data(token_id)
 
         if not token:
-            raise fault.ItemNotFoundFault("Bad token, please reauthenticate")
+            msg = _("Bad token, please reauthenticate")
+            LOG.warn(msg)
+            raise fault.UnauthorizedFault(msg)
 
         if token.expires < datetime.now():
-            raise fault.ForbiddenFault("Token expired, please renew")
+            msg = _("Token expired, please renew.")
+            LOG.warn(msg)
+            raise fault.ForbiddenFault(msg)
 
         if not user.enabled:
-            raise fault.UserDisabledFault("User %s has been disabled!"
-                % user.id)
+            msg = "User %s has been disabled!" % user.id
+            LOG.warn(msg)
+            raise fault.UserDisabledFault(msg)
 
         if user.tenant_id:
             self.__validate_tenant_by_id(user.tenant_id)

@@ -123,10 +123,12 @@ def process(*args):
         require_args(args, 4, 'No password specified for fourth argument')
         if api.add_user(name=object_id, password=args[3],
                 tenant=optional_arg(args, 4)):
+            logging.info("User %s created." % object_id)
             print "SUCCESS: User %s created." % object_id
 
     elif (object_type, command) == ('user', 'disable'):
-        if api.disable_user(name=object_id):
+        if not api.disable_user(name=object_id):
+            logging.info("User %s disabled." % object_id)
             print "SUCCESS: User %s disabled." % object_id
 
     elif (object_type, command) == ('user', 'list'):
@@ -134,13 +136,15 @@ def process(*args):
 
     elif (object_type, command) == ('tenant', 'add'):
         if api.add_tenant(name=object_id):
+            logging.info("Tenant %s created." % object_id)
             print "SUCCESS: Tenant %s created." % object_id
 
     elif (object_type, command) == ('tenant', 'list'):
         print_table(('id', 'name', 'enabled'), api.list_tenants())
 
     elif (object_type, command) == ('tenant', 'disable'):
-        if api.disable_tenant(name=object_id):
+        if not api.disable_tenant(name=object_id):
+            logging.info("Tenant %s disabled." % object_id)
             print "SUCCESS: Tenant %s disabled." % object_id
 
     elif (object_type, command) == ('role', 'add'):
@@ -162,6 +166,8 @@ def process(*args):
             "'tenant (optional)'")
         tenant = optional_arg(args, 4)
         if api.grant_role(object_id, args[3], tenant):
+            logging.info("Granted %s the %s role on %s." %
+                         (object_id, args[3], tenant))
             print("SUCCESS: Granted %s the %s role on %s." %
                 (object_id, args[3], tenant))
 
@@ -172,6 +178,8 @@ def process(*args):
         if api.add_endpoint_template(region=args[2], service=args[3],
                 public_url=args[4], admin_url=args[5], internal_url=args[6],
                 enabled=args[7], is_global=args[8]):
+            logging.info("Created EndpointTemplates for %s pointing to %s." %
+                         (args[3], args[4]))
             print("SUCCESS: Created EndpointTemplates for %s pointing to %s." %
                 (args[3], args[4]))
 
@@ -190,6 +198,8 @@ def process(*args):
         require_args(args, 4, "Missing arguments: endPoint add tenant "
             "endPointTemplate")
         if api.add_endpoint(tenant=args[2], endpoint_template=args[3]):
+            ogging.info("Endpoint %s added to tenant %s." %
+                (args[3], args[2]))
             print("SUCCESS: Endpoint %s added to tenant %s." %
                 (args[3], args[2]))
 
@@ -198,6 +208,8 @@ def process(*args):
             'tenant, and expiration')
         if api.add_token(token=object_id, user=args[3], tenant=args[4],
                 expires=args[5]):
+            logging.info("Token %s created for user %s, tenant %s." %
+                         (object_id, args[3], args[4]))
             print "SUCCESS: Token %s created." % (object_id,)
 
     elif (object_type, command) == ('token', 'list'):
@@ -206,6 +218,7 @@ def process(*args):
 
     elif (object_type, command) == ('token', 'delete'):
         if api.delete_token(token=object_id):
+            logging.info('Token %s deleted.' % (object_id,))
             print 'SUCCESS: Token %s deleted.' % (object_id,)
 
     elif (object_type, command) == ('service', 'add'):
@@ -214,6 +227,7 @@ def process(*args):
         type = optional_arg(args, 3)
         desc = optional_arg(args, 4)
         if api.add_service(name=object_id, type=type, desc=desc):
+            logging.info("Service %s created successfully." % (object_id,))
             print "SUCCESS: Service %s created successfully." % (object_id,)
 
     elif (object_type, command) == ('service', 'list'):
