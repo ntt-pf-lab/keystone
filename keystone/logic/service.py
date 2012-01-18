@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import uuid
 import logging
 
+from keystone import utils
 from keystone.logic.types import auth, atom
 from keystone.logic.signer import Signer
 import keystone.backends as backends
@@ -188,6 +189,28 @@ class IdentityService(object):
         token = auth.Token(dtoken.expires, dtoken.id, dtoken.tenant_id)
         return auth.AuthData(token, endpoints)
 
+    def _validate_user_info(self, user):
+        """Validate the user name and password parameters."""
+        utils.check_empty_string(user.name, "Expecting a unique username")
+        user.name = user.name.strip()
+
+        if api.USER.get_by_name(user.name):
+            raise fault.UserConflictFault(
+                "A user with that name already exists")
+
+        if api.USER.get_by_email(user.email):
+            raise fault.EmailConflictFault(
+                "A user with that email already exists")
+
+        if len(user.name) > 255:
+            raise fault.BadRequestFault("Username can be maximum 255 "\
+                                        "characters in length")
+
+        user.password = user.password.strip()
+        if len(user.password) > 255:
+            raise fault.BadRequestFault("Password can be maximum "\
+                                        "255 characters in length")
+
     #
     #   Tenant Operations
     #
@@ -310,17 +333,7 @@ class IdentityService(object):
         if not isinstance(user, User):
             raise fault.BadRequestFault("Expecting a User")
 
-        if user.name is None or not user.name.strip():
-            raise fault.BadRequestFault("Expecting a unique username")
-
-        if api.USER.get_by_name(user.name):
-            raise fault.UserConflictFault(
-                "A user with that name already exists")
-
-        if api.USER.get_by_email(user.email):
-            raise fault.EmailConflictFault(
-                "A user with that email already exists")
-
+        self._validate_user_info(user)
         duser = models.User()
         duser.name = user.name
         duser.password = user.password
