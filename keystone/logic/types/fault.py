@@ -159,3 +159,11 @@ class ServiceConflictFault(IdentityFault):
     def __init__(self, msg, details=None, code=409):
         super(ServiceConflictFault, self).__init__(msg, details, code)
         self.key = "serviceConflict"
+
+
+class UserTenantRoleConflictFault(IdentityFault):
+    """The Role already exists for the User on the Tenant?"""
+
+    def __init__(self, msg, details=None, code=409):
+        super(UserTenantRoleConflictFault, self).__init__(msg, details, code)
+        self.key = "userTenantRoleConflict"

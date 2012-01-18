@@ -753,6 +753,10 @@ class IdentityService(object):
         if role_ref.tenant_id != None:
             drole_ref.tenant_id = dtenant.id
         user_role_ref = api.USER.user_role_add(drole_ref)
+        if user_role_ref == None:
+            raise fault.UserTenantRoleConflictFault("User (%s) already has "\
+                    "the role (%s) for tenant (%s)" % (drole_ref.user_id, \
+                    drole_ref.role_id, drole_ref.tenant_id))
         role_ref.role_ref_id = user_role_ref.id
         return role_ref
 

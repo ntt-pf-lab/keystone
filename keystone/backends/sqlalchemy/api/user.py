@@ -19,6 +19,7 @@ import keystone.backends.backendutils as utils
 from keystone.backends.sqlalchemy import get_session, models, aliased, \
     joinedload
 from keystone.backends.api import BaseUserAPI
+from sqlalchemy.exc import IntegrityError
 
 
 class UserAPI(BaseUserAPI):
@@ -159,9 +160,13 @@ class UserAPI(BaseUserAPI):
 
     def user_role_add(self, values):
         user_role_ref = models.UserRoleAssociation()
-        user_role_ref.update(values)
-        user_role_ref.save()
-        return user_role_ref
+        try:
+            user_role_ref.update(values)
+            user_role_ref.save()
+        except IntegrityError:
+            return None
+        else:
+            return user_role_ref
 
     def user_get_update(self, id, session=None):
         if not session:
