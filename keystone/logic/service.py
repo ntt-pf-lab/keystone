@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import uuid
 import logging
 
+from keystone import utils
 from keystone.logic.types import auth, atom
 from keystone.logic.signer import Signer
 import keystone.backends as backends
@@ -188,6 +189,23 @@ class IdentityService(object):
         token = auth.Token(dtoken.expires, dtoken.id, dtoken.tenant_id)
         return auth.AuthData(token, endpoints)
 
+    def _validate_tenant_info(self, tenant):
+        """Validate the tenant name and description parameters."""
+        utils.check_empty_string(tenant.name, "Expecting a unique Tenant Name")
+        tenant.name = tenant.name.strip()
+        if len(tenant.name) > 255:
+            raise fault.BadRequestFault("Tenant Name can be maximum 255 "\
+                                        "characters in length")
+
+        if api.TENANT.get_by_name(tenant.name) != None:
+            raise fault.TenantConflictFault(
+                "A tenant with that name already exists")
+
+        tenant.description = tenant.description.strip()
+        if len(tenant.description) > 255:
+            raise fault.BadRequestFault("Tenant description can be maximum "\
+                                        "255 characters in length")
+
     #
     #   Tenant Operations
     #
@@ -198,12 +216,7 @@ class IdentityService(object):
         if not isinstance(tenant, Tenant):
             raise fault.BadRequestFault("Expecting a Tenant")
 
-        if not tenant.name:
-            raise fault.BadRequestFault("Expecting a unique Tenant Name")
-
-        if api.TENANT.get_by_name(tenant.name) != None:
-            raise fault.TenantConflictFault(
-                "A tenant with that name already exists")
+        self._validate_tenant_info(tenant)
 
         dtenant = models.Tenant()
         dtenant.name = tenant.name
