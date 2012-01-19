@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import uuid
 import logging
 
+from keystone import utils
 from keystone.logic.types import auth, atom
 from keystone.logic.signer import Signer
 import keystone.backends as backends
@@ -188,6 +189,22 @@ class IdentityService(object):
         token = auth.Token(dtoken.expires, dtoken.id, dtoken.tenant_id)
         return auth.AuthData(token, endpoints)
 
+    def _validate_property(self, property_name, value, mandatory=False,
+            max_len=255):
+        """Validate the value of the provided tenant property."""
+        try:
+            val = value.strip()
+        except AttributeError:
+            msg = "%s is not a string or unicode" % property_name
+            raise fault.BadRequestFault(msg)
+        if mandatory and not val:
+            msg = "%s cannot be empty." % property_name
+            raise fault.BadRequestFault(msg)
+        if len(val) > max_len:
+            msg = "%s should not be greater than %s characters." %\
+                    (property_name, max_len)
+            raise fault.BadRequestFault(msg)
+
     #
     #   Tenant Operations
     #
@@ -316,6 +333,11 @@ class IdentityService(object):
         if api.USER.get_by_name(user.name):
             raise fault.UserConflictFault(
                 "A user with that name already exists")
+
+        self._validate_property("User email", user.email)
+        user.email = user.email.strip()
+        if user.email and not utils.validate_email(user.email):
+            raise fault.BadRequestFault("Invalid user email")
 
         if api.USER.get_by_email(user.email):
             raise fault.EmailConflictFault(
