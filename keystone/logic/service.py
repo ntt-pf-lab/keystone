@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 import uuid
 import logging
 
-from keystone import utils
 from keystone.logic.types import auth, atom
 from keystone.logic.signer import Signer
 import keystone.backends as backends
@@ -189,22 +188,32 @@ class IdentityService(object):
         token = auth.Token(dtoken.expires, dtoken.id, dtoken.tenant_id)
         return auth.AuthData(token, endpoints)
 
+    def _validate_property(self, property_name, value, mandatory=False,
+            max_len=255):
+        """Validate the value of the provided tenant property."""
+        try:
+            val = value.strip()
+        except AttributeError:
+            msg = "%s is not a string or unicode" % property_name
+            raise fault.BadRequestFault(msg)
+        if mandatory and not val:
+            msg = "%s cannot be empty." % property_name
+            raise fault.BadRequestFault(msg)
+        if len(val) > max_len:
+            msg = "%s should not be greater than %s characters." %\
+                    (property_name, max_len)
+            raise fault.BadRequestFault(msg)
+
     def _validate_tenant_info(self, tenant):
         """Validate the tenant name and description parameters."""
-        utils.check_empty_string(tenant.name, "Expecting a unique Tenant Name")
+        self._validate_property("Tenant name", tenant.name, mandatory=True)
         tenant.name = tenant.name.strip()
-        if len(tenant.name) > 255:
-            raise fault.BadRequestFault("Tenant Name can be maximum 255 "\
-                                        "characters in length")
-
         if api.TENANT.get_by_name(tenant.name) != None:
             raise fault.TenantConflictFault(
                 "A tenant with that name already exists")
 
+        self._validate_property("Tenant description", tenant.description)
         tenant.description = tenant.description.strip()
-        if len(tenant.description) > 255:
-            raise fault.BadRequestFault("Tenant description can be maximum "\
-                                        "255 characters in length")
 
     #
     #   Tenant Operations
@@ -279,6 +288,8 @@ class IdentityService(object):
         dtenant = api.TENANT.get(tenant_id)
         if dtenant == None:
             raise fault.ItemNotFoundFault("The tenant could not be found")
+        self._validate_property("Tenant description", tenant.description)
+        tenant.description = tenant.description.strip()
         values = {'desc': tenant.description, 'enabled': tenant.enabled}
         api.TENANT.update(tenant_id, values)
         tenant = api.TENANT.get(tenant_id)
