@@ -189,27 +189,37 @@ class IdentityService(object):
         token = auth.Token(dtoken.expires, dtoken.id, dtoken.tenant_id)
         return auth.AuthData(token, endpoints)
 
+    def _validate_property(self, property_name, value, mandatory=False,
+            max_len=255):
+        """Validate the value of the provided property."""
+        try:
+            val = value.strip()
+        except AttributeError:
+            msg = "%s is not a string or unicode" % property_name
+            raise fault.BadRequestFault(msg)
+        if mandatory and not val:
+            msg = "%s cannot be empty." % property_name
+            raise fault.BadRequestFault(msg)
+        if len(val) > max_len:
+            msg = "%s should not be greater than %s characters." %\
+                    (property_name, max_len)
+            raise fault.BadRequestFault(msg)
+
     def _validate_user_info(self, user):
         """Validate the user name and password parameters."""
-        utils.check_empty_string(user.name, "Expecting a unique username")
+        self._validate_property("Username", user.name, mandatory=True)
         user.name = user.name.strip()
 
         if api.USER.get_by_name(user.name):
             raise fault.UserConflictFault(
                 "A user with that name already exists")
 
+        self._validate_property("User password", user.password)
+        user.password = user.password.strip()
+
         if api.USER.get_by_email(user.email):
             raise fault.EmailConflictFault(
                 "A user with that email already exists")
-
-        if len(user.name) > 255:
-            raise fault.BadRequestFault("Username can be maximum 255 "\
-                                        "characters in length")
-
-        user.password = user.password.strip()
-        if len(user.password) > 255:
-            raise fault.BadRequestFault("Password can be maximum "\
-                                        "255 characters in length")
 
     #
     #   Tenant Operations
