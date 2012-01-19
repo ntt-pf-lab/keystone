@@ -186,7 +186,7 @@ class RoleAPI(BaseLdapAPI, BaseTenantAPI):
         return models.UserRoleAssociation(id=id, role_id=role_id,
                                 tenant_id=tenant_id, user_id=user_id)
 
-    def ref_delete(self, id):
+    def ref_delete(self, user_id, id):
         role_id, tenant_id, user_id = self._explode_ref(id)
         user_dn = self.api.user._id_to_dn(user_id)
         role_dn = self._subrole_id_to_dn(role_id, tenant_id)

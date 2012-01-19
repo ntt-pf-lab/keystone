@@ -17,6 +17,7 @@
 
 from keystone.backends.sqlalchemy import get_session, models
 from keystone.backends.api import BaseRoleAPI
+from keystone.common import exception
 
 
 class RoleAPI(BaseRoleAPI):
@@ -100,11 +101,20 @@ class RoleAPI(BaseRoleAPI):
             first()
         return result
 
-    def ref_delete(self, id, session=None):
+    def _ref_get_for_user(self, user_id, id, session=None):
+        if not session:
+            session = get_session()
+        result = session.query(models.UserRoleAssociation).\
+                filter_by(user_id=user_id).filter_by(id=id).first()
+        return result
+
+    def ref_delete(self, user_id, id, session=None):
         if not session:
             session = get_session()
         with session.begin():
-            role_ref = self.ref_get(id, session)
+            role_ref = self._ref_get_for_user(user_id, id, session)
+            if not role_ref:
+                raise exception.NotFound("No such user in role")
             session.delete(role_ref)
 
     def get_page_markers(self, marker, limit, session=None):

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import uuid
 import logging
 
+from keystone.common import exception
 from keystone.logic.types import auth, atom
 from keystone.logic.signer import Signer
 import keystone.backends as backends
@@ -756,9 +757,13 @@ class IdentityService(object):
         role_ref.role_ref_id = user_role_ref.id
         return role_ref
 
-    def delete_role_ref(self, admin_token, role_ref_id):
+    def delete_role_ref(self, admin_token, user_id, role_ref_id):
         self.__validate_service_or_keystone_admin_token(admin_token)
-        api.ROLE.ref_delete(role_ref_id)
+        try:
+            api.ROLE.ref_delete(user_id, role_ref_id)
+        except exception.NotFound:
+            raise fault.ItemNotFoundFault("The roleRef does not belong to "\
+                    "the specified user")
         return None
 
     def add_global_role_to_user(self, admin_token, user_id, role_id):

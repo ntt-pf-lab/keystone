@@ -52,7 +52,7 @@ class RolesController(wsgi.Controller):
     @utils.wrap_error
     def delete_role_ref(self, req, user_id, role_ref_id):
         rval = config.SERVICE.delete_role_ref(utils.get_auth_token(req),
-            role_ref_id)
+            user_id, role_ref_id)
         return utils.send_result(204, req, rval)
 
     @utils.wrap_error
