@@ -191,19 +191,24 @@ class IdentityService(object):
 
     def _validate_property(self, property_name, value, mandatory=False,
             max_len=255):
-        """Validate the value of the provided tenant property."""
-        try:
-            val = value.strip()
-        except AttributeError:
-            msg = "%s is not a string or unicode" % property_name
+        """Validate the value of the provided property."""
+        if mandatory and not value:
+            msg = _("%s cannot be empty.") % property_name
             raise fault.BadRequestFault(msg)
-        if mandatory and not val:
-            msg = "%s cannot be empty." % property_name
-            raise fault.BadRequestFault(msg)
-        if len(val) > max_len:
-            msg = "%s should not be greater than %s characters." %\
-                    (property_name, max_len)
-            raise fault.BadRequestFault(msg)
+
+        if value:
+            try:
+                val = value.strip()
+            except AttributeError:
+                msg = _("%s is not a string or unicode") % property_name
+                raise fault.BadRequestFault(msg)
+
+            if len(val) > max_len:
+                msg_values = {'property_name': property_name,
+                                'length': max_len}
+                msg = _("%(property_name)s should not be greater than "\
+                        "%(length)s characters.") % msg_values
+                raise fault.BadRequestFault(msg)
 
     #
     #   Tenant Operations
@@ -334,10 +339,11 @@ class IdentityService(object):
             raise fault.UserConflictFault(
                 "A user with that name already exists")
 
-        self._validate_property("User email", user.email)
-        user.email = user.email.strip()
+        self._validate_property(_("User email"), user.email)
+        if user.email:
+            user.email = user.email.strip()
         if user.email and not utils.validate_email(user.email):
-            raise fault.BadRequestFault("Invalid user email")
+            raise fault.BadRequestFault(_("Invalid user email"))
 
         if api.USER.get_by_email(user.email):
             raise fault.EmailConflictFault(
@@ -430,7 +436,13 @@ class IdentityService(object):
         if not isinstance(user, User):
             raise fault.BadRequestFault("Expecting a User")
 
-        if user.email != duser.email and \
+        self._validate_property(_("User email"), user.email)
+        if user.email:
+            user.email = user.email.strip()
+        if user.email and not utils.validate_email(user.email):
+            raise fault.BadRequestFault(_("Invalid user email"))
+
+        if user.email and user.email != duser.email and \
                 api.USER.get_by_email(user.email) is not None:
             raise fault.EmailConflictFault("Email already exists")
 
