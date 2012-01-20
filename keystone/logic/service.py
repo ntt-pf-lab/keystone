@@ -295,7 +295,8 @@ class IdentityService(object):
         if dtenant == None:
             raise fault.ItemNotFoundFault("The tenant could not be found")
         self._validate_property("Tenant description", tenant.description)
-        tenant.description = tenant.description.strip()
+        if tenant.description:
+            tenant.description = tenant.description.strip()
         values = {'desc': tenant.description, 'enabled': tenant.enabled}
         api.TENANT.update(tenant_id, values)
         tenant = api.TENANT.get(tenant_id)
