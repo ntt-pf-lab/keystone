@@ -19,6 +19,7 @@ import keystone.backends.backendutils as utils
 from keystone.backends.sqlalchemy import get_session, models, aliased, \
     joinedload
 from keystone.backends.api import BaseUserAPI
+from keystone.logic.types import fault
 from sqlalchemy.exc import IntegrityError
 
 
@@ -163,8 +164,11 @@ class UserAPI(BaseUserAPI):
         try:
             user_role_ref.update(values)
             user_role_ref.save()
-        except IntegrityError:
-            return None
+        except IntegrityError, err:
+            raise fault.IntegrityException(str(err))
+        except Exception as err:
+            raise fault.DatabaseException(_("Unknown database exception:"\
+                    "%s") % str(err))
         else:
             return user_role_ref
 

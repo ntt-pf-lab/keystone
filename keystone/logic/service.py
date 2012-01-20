@@ -752,11 +752,17 @@ class IdentityService(object):
         drole_ref.role_id = drole.id
         if role_ref.tenant_id != None:
             drole_ref.tenant_id = dtenant.id
-        user_role_ref = api.USER.user_role_add(drole_ref)
-        if user_role_ref == None:
-            raise fault.UserTenantRoleConflictFault("User (%s) already has "\
-                    "the role (%s) for tenant (%s)" % (drole_ref.user_id, \
-                    drole_ref.role_id, drole_ref.tenant_id))
+        try:
+            user_role_ref = api.USER.user_role_add(drole_ref)
+        except fault.IntegrityException:
+            attrs = {'user_id': drole_ref.user_id,
+                        'role_id': drole_ref.role_id,
+                        'tenant_id': drole_ref.tenant_id}
+            raise fault.UserTenantRoleConflictFault(_("User (%(user_id)s) "\
+                    "already has the role (%(role_id)s) for tenant "\
+                    "(%(tenant_id)s)") % attrs)
+        except Exception, err:
+            raise IdentityFault(str(err))
         role_ref.role_ref_id = user_role_ref.id
         return role_ref
 
