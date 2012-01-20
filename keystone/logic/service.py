@@ -762,8 +762,8 @@ class IdentityService(object):
         try:
             api.ROLE.ref_delete(user_id, role_ref_id)
         except exception.NotFound:
-            raise fault.ItemNotFoundFault("The roleRef does not belong to "\
-                    "the specified user")
+            raise fault.ItemNotFoundFault(_("The roleRef does not belong to "\
+                    "the specified user"))
         return None
 
     def add_global_role_to_user(self, admin_token, user_id, role_id):

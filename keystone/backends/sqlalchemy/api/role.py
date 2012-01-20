@@ -114,7 +114,7 @@ class RoleAPI(BaseRoleAPI):
         with session.begin():
             role_ref = self._ref_get_for_user(user_id, id, session)
             if not role_ref:
-                raise exception.NotFound("No such user in role")
+                raise exception.NotFound(_("No such user in role"))
             session.delete(role_ref)
 
     def get_page_markers(self, marker, limit, session=None):
