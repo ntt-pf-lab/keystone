@@ -190,30 +190,36 @@ class IdentityService(object):
 
     def _validate_property(self, property_name, value, mandatory=False,
             max_len=255):
-        """Validate the value of the provided tenant property."""
-        try:
-            val = value.strip()
-        except AttributeError:
-            msg = "%s is not a string or unicode" % property_name
+        """Validate the value of the provided property."""
+        if mandatory and not value:
+            msg = _("%s cannot be empty.") % property_name
             raise fault.BadRequestFault(msg)
-        if mandatory and not val:
-            msg = "%s cannot be empty." % property_name
-            raise fault.BadRequestFault(msg)
-        if len(val) > max_len:
-            msg = "%s should not be greater than %s characters." %\
-                    (property_name, max_len)
-            raise fault.BadRequestFault(msg)
+
+        if value:
+            try:
+                val = value.strip()
+            except AttributeError:
+                msg = _("%s is not a string or unicode") % property_name
+                raise fault.BadRequestFault(msg)
+
+            if len(val) > max_len:
+                msg_values = {'property_name': property_name,
+                                'length': max_len}
+                msg = _("%(property_name)s should not be greater than "\
+                        "%(length)s characters.") % msg_values
+                raise fault.BadRequestFault(msg)
 
     def _validate_tenant_info(self, tenant):
         """Validate the tenant name and description parameters."""
-        self._validate_property("Tenant name", tenant.name, mandatory=True)
+        self._validate_property(_("Tenant name"), tenant.name, mandatory=True)
         tenant.name = tenant.name.strip()
         if api.TENANT.get_by_name(tenant.name) != None:
             raise fault.TenantConflictFault(
-                "A tenant with that name already exists")
+                _("A tenant with that name already exists"))
 
-        self._validate_property("Tenant description", tenant.description)
-        tenant.description = tenant.description.strip()
+        self._validate_property(_("Tenant description"), tenant.description)
+        if tenant.description:
+            tenant.description = tenant.description.strip()
 
     #
     #   Tenant Operations

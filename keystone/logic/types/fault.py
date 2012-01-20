@@ -23,8 +23,8 @@ class IdentityFault(Exception):
     def __init__(self, msg, details=None, code=500):
         self.args = (code, msg, details)
         self.code = code
-        self.msg = _(msg)
-        self.details = _(details) if details else details
+        self.msg = msg
+        self.details = details
         self.key = "IdentityFault"
 
     @property
