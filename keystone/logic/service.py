@@ -192,34 +192,42 @@ class IdentityService(object):
     def _validate_property(self, property_name, value, mandatory=False,
             max_len=255):
         """Validate the value of the provided property."""
-        try:
-            val = value.strip()
-        except AttributeError:
-            msg = "%s is not a string or unicode" % property_name
+        if mandatory and not value:
+            msg = _("%s cannot be empty.") % property_name
             raise fault.BadRequestFault(msg)
-        if mandatory and not val:
-            msg = "%s cannot be empty." % property_name
-            raise fault.BadRequestFault(msg)
-        if len(val) > max_len:
-            msg = "%s should not be greater than %s characters." %\
-                    (property_name, max_len)
-            raise fault.BadRequestFault(msg)
+
+        if value:
+            try:
+                val = value.strip()
+            except AttributeError:
+                msg = _("%s is not a string or unicode") % property_name
+                raise fault.BadRequestFault(msg)
+
+            if len(val) > max_len:
+                msg_values = {'property_name': property_name,
+                                'length': max_len}
+                msg = _("%(property_name)s should not be greater than "\
+                        "%(length)s characters.") % msg_values
+                raise fault.BadRequestFault(msg)
 
     def _validate_user_info(self, user):
         """Validate the user name and password parameters."""
-        self._validate_property("Username", user.name, mandatory=True)
+        self._validate_property(_("Username"), user.name, mandatory=True)
         user.name = user.name.strip()
 
         if api.USER.get_by_name(user.name):
             raise fault.UserConflictFault(
-                "A user with that name already exists")
+                _("A user with that name already exists"))
 
-        self._validate_property("User password", user.password)
+        self._validate_property(_("User password"), user.password,
+                                mandatory=True)
         user.password = user.password.strip()
 
-        if api.USER.get_by_email(user.email):
-            raise fault.EmailConflictFault(
-                "A user with that email already exists")
+        self._validate_property(_("User email"), user.email)
+        if user.email:
+            if api.USER.get_by_email(user.email):
+                raise fault.EmailConflictFault(
+                    _("A user with that email already exists"))
 
     #
     #   Tenant Operations
