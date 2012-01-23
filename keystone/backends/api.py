@@ -181,7 +181,7 @@ class BaseRoleAPI(object):
     def ref_get_by_role(self, id):
         raise NotImplementedError
 
-    def ref_delete(self, id):
+    def ref_delete(self, user_id, id):
         raise NotImplementedError
 
     def get_page_markers(self, marker, limit):
