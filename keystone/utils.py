@@ -16,6 +16,7 @@
 
 
 import os
+import re
 import sys
 import logging
 import functools
@@ -160,3 +161,22 @@ def import_module(module_name, class_name=None):
     except (ImportError, ValueError, AttributeError), exception:
         raise ImportError(_('Class %s.%s cannot be found (%s)') %
             (module_name, class_name, exception))
+
+
+#Email validation regex taken from Django.
+email_re = re.compile(
+    # dot-atom
+    r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"
+    # quoted-string
+    r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014"\
+    "\016-\177])*"'
+    # domain
+    r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?$',
+    re.IGNORECASE)
+
+
+def validate_email(email):
+    """Validate the email format"""
+    if email_re.search(email):
+        return True
+    return False

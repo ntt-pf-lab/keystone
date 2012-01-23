@@ -235,9 +235,13 @@ class IdentityService(object):
 
         self._validate_property(_("User email"), user.email)
         if user.email:
+            user.email = user.email.strip()
             if api.USER.get_by_email(user.email):
                 raise fault.EmailConflictFault(
                     _("A user with that email already exists"))
+
+            if utils.validate_email(user.email):
+                raise fault.BadRequestFault(_("Invalid user email"))
 
     #
     #   Tenant Operations
@@ -360,6 +364,11 @@ class IdentityService(object):
             raise fault.BadRequestFault("Expecting a User")
 
         self._validate_user_info(user)
+
+        user.name = user.name.strip()
+        user.password = user.password.strip()
+        if user.email:
+            user.email = user.email.strip()
         duser = models.User()
         duser.name = user.name
         duser.password = user.password
@@ -447,7 +456,13 @@ class IdentityService(object):
         if not isinstance(user, User):
             raise fault.BadRequestFault("Expecting a User")
 
-        if user.email != duser.email and \
+        self._validate_property(_("User email"), user.email)
+        if user.email:
+            user.email = user.email.strip()
+        if user.email and not utils.validate_email(user.email):
+            raise fault.BadRequestFault(_("Invalid user email"))
+
+        if user.email and user.email != duser.email and \
                 api.USER.get_by_email(user.email) is not None:
             raise fault.EmailConflictFault("Email already exists")
 
