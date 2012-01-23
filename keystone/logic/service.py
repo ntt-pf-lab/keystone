@@ -203,10 +203,8 @@ class IdentityService(object):
                 raise fault.BadRequestFault(msg)
 
             if len(val) > max_len:
-                msg_values = {'property_name': property_name,
-                                'length': max_len}
                 msg = _("%(property_name)s should not be greater than "\
-                        "%(length)s characters.") % msg_values
+                        "%(max_len)s characters.") % locals()
                 raise fault.BadRequestFault(msg)
 
     def _validate_tenant_info(self, tenant):
