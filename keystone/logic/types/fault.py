@@ -167,24 +167,3 @@ class UserTenantRoleConflictFault(IdentityFault):
     def __init__(self, msg, details=None, code=409):
         super(UserTenantRoleConflictFault, self).__init__(msg, details, code)
         self.key = "userTenantRoleConflict"
-
-
-class DatabaseException(Exception):
-    """Base Exception type for all database exceptions"""
-
-    def __init__(self, msg, details=None, code=500):
-        self.args = (code, msg, details)
-        self.code = code
-        self.msg = msg
-        self.details = details
-
-    @property
-    def message(self):
-        return self.msg
-
-
-class IntegrityException(DatabaseException):
-    """Database integrity error"""
-
-    def __init__(self, msg, details=None, code=409):
-        super(IntegrityException, self).__init__(msg, details, code)

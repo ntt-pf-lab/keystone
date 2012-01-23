@@ -171,6 +171,9 @@ class RoleAPI(BaseLdapAPI, BaseTenantAPI):
                        tenant_id=tenant_id))
             return res
 
+    def ref_get_user_tenant_role(self, user_id, tenant_id, role_id):
+        raise NotImplementedError
+
     def ref_get(self, id):
         role_id, tenant_id, user_id = self._explode_ref(id)
         user_dn = self.api.user._id_to_dn(user_id)

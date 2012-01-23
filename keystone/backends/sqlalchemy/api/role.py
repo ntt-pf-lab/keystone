@@ -93,6 +93,14 @@ class RoleAPI(BaseRoleAPI):
         return session.query(models.UserRoleAssociation).\
                 filter_by(user_id=user_id).filter_by(tenant_id=tenant_id).all()
 
+    def ref_get_user_tenant_role(self, user_id, tenant_id, role_id,
+            session=None):
+        if not session:
+            session = get_session()
+        return session.query(models.UserRoleAssociation).\
+                filter_by(user_id=user_id).filter_by(tenant_id=tenant_id).\
+                filter_by(role_id=role_id).all()
+
     def ref_get(self, id, session=None):
         if not session:
             session = get_session()

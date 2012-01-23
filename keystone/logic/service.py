@@ -747,6 +747,15 @@ class IdentityService(object):
             if dtenant == None:
                 raise fault.ItemNotFoundFault("The tenant not found")
 
+        #verify if the role is defined for the specified user for the tenant.
+        trole_ref = api.ROLE.ref_get_user_tenant_role(user_id,
+                                                        role_ref.tenant_id,
+                                                        role_ref.role_id)
+        if trole_ref:
+            raise fault.UserTenantRoleConflictFault(_("User already has the "\
+                "role (%(role_id)s) for tenant (%(tenant_id)s)") %\
+                role_ref.__dict__)
+
         drole_ref = models.UserRoleAssociation()
         drole_ref.user_id = duser.id
         drole_ref.role_id = drole.id
@@ -754,13 +763,6 @@ class IdentityService(object):
             drole_ref.tenant_id = dtenant.id
         try:
             user_role_ref = api.USER.user_role_add(drole_ref)
-        except fault.IntegrityException:
-            attrs = {'user_id': drole_ref.user_id,
-                        'role_id': drole_ref.role_id,
-                        'tenant_id': drole_ref.tenant_id}
-            raise fault.UserTenantRoleConflictFault(_("User (%(user_id)s) "\
-                    "already has the role (%(role_id)s) for tenant "\
-                    "(%(tenant_id)s)") % attrs)
         except Exception, err:
             raise IdentityFault(str(err))
         role_ref.role_ref_id = user_role_ref.id
