@@ -204,10 +204,8 @@ class IdentityService(object):
                 raise fault.BadRequestFault(msg)
 
             if len(val) > max_len:
-                msg_values = {'property_name': property_name,
-                                'length': max_len}
                 msg = _("%(property_name)s should not be greater than "\
-                        "%(length)s characters.") % msg_values
+                        "%(max_len)s characters.") % locals()
                 raise fault.BadRequestFault(msg)
 
     #
@@ -335,9 +333,13 @@ class IdentityService(object):
         if user.name is None or not user.name.strip():
             raise fault.BadRequestFault("Expecting a unique username")
 
+        user.name = user.name.strip()
         if api.USER.get_by_name(user.name):
             raise fault.UserConflictFault(
                 "A user with that name already exists")
+
+        if user.password:
+            user.password = user.password.strip()
 
         self._validate_property(_("User email"), user.email)
         if user.email:
