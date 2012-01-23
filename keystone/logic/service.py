@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import uuid
 import logging
 
+from keystone import utils
 from keystone.logic.types import auth, atom
 from keystone.logic.signer import Signer
 import keystone.backends as backends
@@ -219,6 +220,25 @@ class IdentityService(object):
         if tenant.description:
             tenant.description = tenant.description.strip()
 
+    def _validate_user_info(self, user):
+        """Validate the user name and password parameters."""
+        self._validate_property(_("Username"), user.name, mandatory=True)
+        user.name = user.name.strip()
+
+        if api.USER.get_by_name(user.name):
+            raise fault.UserConflictFault(
+                _("A user with that name already exists"))
+
+        self._validate_property(_("User password"), user.password,
+                                mandatory=True)
+        user.password = user.password.strip()
+
+        self._validate_property(_("User email"), user.email)
+        if user.email:
+            if api.USER.get_by_email(user.email):
+                raise fault.EmailConflictFault(
+                    _("A user with that email already exists"))
+
     #
     #   Tenant Operations
     #
@@ -339,17 +359,7 @@ class IdentityService(object):
         if not isinstance(user, User):
             raise fault.BadRequestFault("Expecting a User")
 
-        if user.name is None or not user.name.strip():
-            raise fault.BadRequestFault("Expecting a unique username")
-
-        if api.USER.get_by_name(user.name):
-            raise fault.UserConflictFault(
-                "A user with that name already exists")
-
-        if api.USER.get_by_email(user.email):
-            raise fault.EmailConflictFault(
-                "A user with that email already exists")
-
+        self._validate_user_info(user)
         duser = models.User()
         duser.name = user.name
         duser.password = user.password
