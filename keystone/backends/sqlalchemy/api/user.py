@@ -19,6 +19,7 @@ import keystone.backends.backendutils as utils
 from keystone.backends.sqlalchemy import get_session, models, aliased, \
     joinedload
 from keystone.backends.api import BaseUserAPI
+from sqlalchemy.exc import IntegrityError
 
 
 class UserAPI(BaseUserAPI):
