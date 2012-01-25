@@ -56,7 +56,7 @@ import json
 import os
 from paste.deploy import loadapp
 from urlparse import urlparse
-from webob.exc import HTTPUnauthorized
+from webob.exc import HTTPUnauthorized, HTTPForbidden
 from webob.exc import Request, Response
 import keystone.tools.tracer  # @UnusedImport # module runs on import
 
@@ -143,7 +143,7 @@ class AuthProtocol(object):
                 return self._reject_request(env, start_response)
         else:
             # this request is presenting claims. Let's validate them
-            valid = self._validate_claims(claims)
+            (valid, status) = self._validate_claims(claims)
             if not valid:
                 # Keystone rejected claim
                 if self.delay_auth_decision:
@@ -152,7 +152,7 @@ class AuthProtocol(object):
                         "Invalid", env, proxy_headers)
                 else:
                     #Respond to client as appropriate for this auth protocol
-                    return self._reject_claims(env, start_response)
+                    return self._reject_claims(env, start_response, status)
             else:
                 self._decorate_request("X_IDENTITY_STATUS",
                     "Confirmed", env, proxy_headers)
@@ -216,10 +216,14 @@ class AuthProtocol(object):
                       "Keystone uri='%s'" % self.auth_location)])(env,
                                                         start_response)
 
-    def _reject_claims(self, env, start_response):
+    def _reject_claims(self, env, start_response, status=401):
         """Client sent bad claims"""
-        return HTTPUnauthorized()(env,
-            start_response)
+        if status == 403:
+            return HTTPForbidden()(env,
+                start_response)
+        else:
+            return HTTPUnauthorized()(env,
+                start_response)
 
     def _validate_claims(self, claims):
         """Validate claims, and provide identity information isf applicable """
@@ -250,12 +254,12 @@ class AuthProtocol(object):
 
         if not str(resp.status).startswith('20'):
             # Keystone rejected claim
-            return False
+            return (False, resp.status)
         else:
             #TODO(Ziad): there is an optimization we can do here. We have just
             #received data from Keystone that we can use instead of making
             #another call in _expound_claims
-            return True
+            return (True, resp.status)
 
     def _expound_claims(self, claims):
         # Valid token. Get user data and put it in to the call
