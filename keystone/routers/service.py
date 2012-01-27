@@ -19,6 +19,7 @@ import routes
 
 from keystone.common import wsgi
 import keystone.backends as db
+import keystone.controllers as controllers
 from keystone.controllers.auth import AuthController
 from keystone.controllers.tenant import TenantController
 from keystone.controllers.version import VersionController
@@ -34,6 +35,7 @@ class ServiceApi(wsgi.Router):
         mapper = routes.Mapper()
 
         db.configure_backends(options)
+        controllers.configure_pagination(options)
 
         # Token Operations
         auth_controller = AuthController(options)
