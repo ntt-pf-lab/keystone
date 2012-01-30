@@ -25,4 +25,4 @@ def configure_pagination(options):
     """Load pagination configuration specified in the options."""
     global PAGE_LIMIT
     PAGE_LIMIT = config.get_option(
-            options, 'page_limit', type='int', default=10)
+            options, 'page_limit', type='int', default=25)
