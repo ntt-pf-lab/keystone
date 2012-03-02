@@ -17,8 +17,10 @@
 
 import ast
 import logging
+import time
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError, DBAPIError
 from sqlalchemy.orm import joinedload, aliased, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -29,6 +31,9 @@ import keystone.backends.api as top_api
 import keystone.backends.models as top_models
 _ENGINE = None
 _MAKER = None
+_MAX_RETRIES = None
+_RETRY_INTERVAL = None
+logger = None
 BASE = models.Base
 
 MODEL_PREFIX = 'keystone.backends.sqlalchemy.models.'
@@ -44,6 +49,9 @@ def configure_backend(options):
     :param options: Mapping of configuration options
     """
     global _ENGINE
+    global _MAX_RETRIES
+    global _RETRY_INTERVAL
+    global logger
     if not _ENGINE:
         debug = config.get_option(
             options, 'debug', type='bool', default=False)
@@ -51,7 +59,10 @@ def configure_backend(options):
             options, 'verbose', type='bool', default=False)
         timeout = config.get_option(
             options, 'sql_idle_timeout', type='int', default=3600)
-
+        _MAX_RETRIES = config.get_option(
+            options, 'sql_max_retries', type='int', default=10)
+        _RETRY_INTERVAL = config.get_option(
+            options, 'sql_retry_interval', type='int', default=1)
         if options['sql_connection'] == FOR_TESTING_ONLY:
             _ENGINE = create_engine('sqlite://',
                 connect_args={'check_same_thread': False},
@@ -59,6 +70,7 @@ def configure_backend(options):
         else:
             _ENGINE = create_engine(options['sql_connection'],
                 pool_recycle=timeout)
+            _ENGINE.create = wrap_db_error(_ENGINE.create)
 
         logger = logging.getLogger('sqlalchemy.engine')
         if debug:
@@ -83,7 +95,52 @@ def get_session(autocommit=True, expire_on_commit=False):
         _MAKER = sessionmaker(bind=_ENGINE,
                               autocommit=autocommit,
                               expire_on_commit=expire_on_commit)
-    return _MAKER()
+    session = _MAKER()
+    session.query = wrap_db_error(session.query)
+    session.flush = wrap_db_error(session.flush)
+    session.execute = wrap_db_error(session.execute)
+    session.begin = wrap_db_error(session.begin)
+    return session
+
+
+def is_db_connection_error(args):
+    """Return True if error in connecting to db."""
+    conn_err_codes = ('2002', '2006')
+    for err_code in conn_err_codes:
+        if args.find(err_code) != -1:
+            return True
+    return False
+
+
+def wrap_db_error(f):
+    """Retry DB connection. Copied from nova and modified."""
+    def _wrap(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except OperationalError, e:
+            if not is_db_connection_error(e.args[0]):
+                raise
+
+            global _MAX_RETRIES
+            global _RETRY_INTERVAL
+            remaining_attempts = _MAX_RETRIES
+            while True:
+                logger.warning(_('SQL connection failed. %d attempts left.'),
+                                remaining_attempts)
+                remaining_attempts -= 1
+                time.sleep(_RETRY_INTERVAL)
+                try:
+                    return f(*args, **kwargs)
+                except OperationalError, e:
+                    if remaining_attempts == 0 or \
+                       not is_db_connection_error(e.args[0]):
+                        raise
+                except DBAPIError:
+                    raise
+        except DBAPIError:
+            raise
+    _wrap.func_name = f.func_name
+    return _wrap
 
 
 def register_models(options):
