@@ -238,12 +238,11 @@ class IdentityService(object):
         self._validate_property(_("User email"), user.email)
         if user.email:
             user.email = user.email.strip()
+            if not utils.validate_email(user.email):
+                raise fault.BadRequestFault(_("Invalid user email"))
             if api.USER.get_by_email(user.email):
                 raise fault.EmailConflictFault(
                     _("A user with that email already exists"))
-
-            if utils.validate_email(user.email):
-                raise fault.BadRequestFault(_("Invalid user email"))
 
     #
     #   Tenant Operations
